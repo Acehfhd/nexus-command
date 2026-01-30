@@ -1,0 +1,25 @@
+{
+	"name": "Nexus Dashboard (Free Agent Pod)",
+	"image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bookworm",
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {
+			"version": "latest",
+			"enableNonRootDocker": "true",
+			"moby": "true"
+		},
+		"ghcr.io/devcontainers/features/git:1": {}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"rooveterinaryinc.roo-cline", 
+				"esbenp.prettier-vscode",
+				"dbaeumer.vscode-eslint",
+				"tailscale.vscode-tailscale"
+			]
+		}
+	},
+	"forwardPorts": [5173],
+	"postCreateCommand": "npm install",
+	"remoteUser": "node"
+}

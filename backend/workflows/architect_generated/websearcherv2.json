@@ -1,0 +1,101 @@
+{
+  "name": "WebSearcherV2",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "websearcherv2",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "agent": "conversational",
+        "promptSystem": "You are an AI agent that uses the Google Search tool to answer user queries.",
+        "options": {}
+      },
+      "id": "websearcherv2",
+      "name": "WebSearcherV2",
+      "type": "n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "model": "qwen3:8b",
+        "options": {}
+      },
+      "id": "ollama_model",
+      "name": "Ollama Model",
+      "type": "n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        100,
+        500
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "search_tool_0",
+      "name": "Search Tool 0",
+      "type": "n8n-nodes-langchain.toolGoogleSearch",
+      "typeVersion": 1,
+      "position": [
+        400,
+        500
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "WebSearcherV2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "WebSearcherV2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Tool 0": {
+      "ai_tool": [
+        [
+          {
+            "node": "WebSearcherV2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": true,
+  "meta": {
+    "templateId": "nexus-architect-gen"
+  }
+}

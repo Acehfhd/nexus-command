@@ -1,0 +1,286 @@
+{
+    "name": "Homework Automation Pipeline (Tutor Mode)",
+    "nodes": [
+        {
+            "parameters": {
+                "path": "homework-solve",
+                "responseMode": "lastNode",
+                "options": {}
+            },
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                200,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://nexus-ollama:11434/api/generate",
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "model",
+                            "value": "llava:latest"
+                        },
+                        {
+                            "name": "prompt",
+                            "value": "Extract text and math formulas from this image. Transcribe exactly."
+                        },
+                        {
+                            "name": "images",
+                            "value": "={{ $json.body.images }}"
+                        },
+                        {
+                            "name": "stream",
+                            "value": false
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "name": "Vision (Extract)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                400,
+                300
+            ]
+        },
+        {
+            "parameters": {},
+            "name": "Context: Obsidian",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                600,
+                300
+            ],
+            "notes": "Fetch local notes"
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://nexus-ollama:11434/api/generate",
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "model",
+                            "value": "deepseek-r1:14b"
+                        },
+                        {
+                            "name": "prompt",
+                            "value": "You are a helpful Tutor. Do NOT just give the answer. Explain the steps clearly so the student learns.\n\nProblem: {{$json.response}}\nContext: {{$node[\"Context: Obsidian\"].json}}"
+                        },
+                        {
+                            "name": "stream",
+                            "value": false
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "name": "Tutor (DeepSeek R1)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                800,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "url": "=http://nexus-prime-backend:8080/tools/search?q={{ $json.response }}",
+                "method": "GET"
+            },
+            "name": "Search Verification",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                1000,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://openrouter.ai/api/v1/chat/completions",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "model",
+                            "value": "google/gemini-2.0-flash-exp:free"
+                        }
+                    ]
+                }
+            },
+            "name": "Council: Gemini",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                1200,
+                100
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://openrouter.ai/api/v1/chat/completions",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "model",
+                            "value": "meta-llama/llama-3.3-70b-instruct:free"
+                        }
+                    ]
+                }
+            },
+            "name": "Council: Llama 3.3",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                1200,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://openrouter.ai/api/v1/chat/completions",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "model",
+                            "value": "qwen/qwen-2.5-coder-32b-instruct:free"
+                        }
+                    ]
+                }
+            },
+            "name": "Council: Qwen Coder",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                1200,
+                500
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const votes = items.map(i => i.json.choices[0].message.content);\nreturn { json: { consensus: votes } };"
+            },
+            "name": "Consensus Judge",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1400,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Vision (Extract)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Vision (Extract)": {
+            "main": [
+                [
+                    {
+                        "node": "Context: Obsidian",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Context: Obsidian": {
+            "main": [
+                [
+                    {
+                        "node": "Tutor (DeepSeek R1)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Tutor (DeepSeek R1)": {
+            "main": [
+                [
+                    {
+                        "node": "Search Verification",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Search Verification": {
+            "main": [
+                [
+                    {
+                        "node": "Council: Gemini",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Council: Llama 3.3",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Council: Qwen Coder",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Council: Gemini": {
+            "main": [
+                [
+                    {
+                        "node": "Consensus Judge",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Council: Llama 3.3": {
+            "main": [
+                [
+                    {
+                        "node": "Consensus Judge",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Council: Qwen Coder": {
+            "main": [
+                [
+                    {
+                        "node": "Consensus Judge",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

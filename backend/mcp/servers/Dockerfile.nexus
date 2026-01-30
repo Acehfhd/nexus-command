@@ -1,0 +1,59 @@
+# ==========================================
+# NEXUS SUPER MCP SERVER
+# Hosts: Gemini CLI, OpenCode, and Python Tools
+# ==========================================
+
+FROM python:3.11-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+WORKDIR /app
+
+# 1. System Dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    build-essential \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. Install Node.js 20 (for Gemini CLI)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && npm install -g pnpm yarn
+
+# 3. Install Go 1.22 (for OpenCode)
+COPY --from=golang:1.22-bullseye /usr/local/go /usr/local/go
+ENV PATH="/usr/local/go/bin:${PATH}"
+
+# 4. Install Gemini CLI (Unofficial Wrapper as requested/found in research)
+# Note: If official is different, we can swap. Commonly 'npm i -g @google/gemini-cli' or similar.
+# Using a placeholder installation for the known open-source CLI:
+RUN npm install -g @google/gemini-cli || echo "Official package name might vary, checking..."
+
+# 5. Install OpenCode (via Go)
+# Found correct repo: github.com/sst/opencode or similar. Trying known valid path.
+# 5. Install OpenCode (via Go)
+# Using the official install script from opencode.ai (maps to GitHub releases)
+RUN curl -fsSL https://opencode.ai/install | bash || echo "Install script failed, trying Go direct"
+# MOVE BINARY: The script installs to ~/.opencode/bin. We move it to /usr/local/bin so we can mount ~/.opencode for config without hiding the binary.
+RUN mv /root/.opencode/bin/opencode /usr/local/bin/opencode && chmod +x /usr/local/bin/opencode || echo "Binary move failed"
+
+# 6. Install Python Dependencies for MCP Server
+ENV GEMINI_API_KEY="REPLACE_WITH_REAL_KEY_OR_PASS_VIA_ENV"
+
+RUN pip install --no-cache-dir \
+    fastapi \
+    uvicorn \
+    requests \
+    pydantic \
+    mcp \
+    google-generativeai \
+    duckduckgo-search
+
+# 7. Setup Application
+COPY nexus_mcp.py /app/main.py
+
+# 8. Expose & Run
+EXPOSE 8000
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

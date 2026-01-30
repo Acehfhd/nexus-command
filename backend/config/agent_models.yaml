@@ -1,0 +1,44 @@
+# Nexus Prime: Agent Model Configuration
+# ========================================
+# Change models here - no code changes needed.
+# Format: role: ollama_model_name
+
+models:
+  # The Manager - Routes tasks, manages memory
+  manager:
+    model: "qwen3:8b"
+    description: "Task orchestration, tool calling, session memory (16K context)"
+    alternatives:
+      - "ministral-3:8b"
+      - "gemma3:12b"
+      - "functiongemma:latest"
+
+  # The Architect - Writes code
+  coder:
+    model: "deepseek-r1:14b"
+    description: "Code generation, Dockerfiles, configs"
+    alternatives:
+      - "qwen3-coder:30b-a3b"
+      - "starcoder2:15b"
+      - "codellama:13b"
+
+  # The Operator - Browser automation
+  browser:
+    model: "qwen3-vl:8b"
+    description: "Vision-based browser control, screenshot analysis"
+    alternatives:
+      - "llava:13b"
+      - "gemma3:27b"
+
+  # The Auditor - Security review
+  auditor:
+    model: "granite3.3:8b"
+    description: "Code review, vulnerability detection"
+    alternatives:
+      - "codegemma:7b"
+      - "deepseek-r1:14b"
+
+# LiteLLM Bridge
+litellm:
+  endpoint: "http://nexus-console:4000"
+  ollama_backend: "http://nexus-ollama:11434"

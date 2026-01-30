@@ -1,0 +1,36 @@
+{
+  "name": "Connect Forge - AI Training & Systems",
+  "build": {
+    "dockerfile": "../Dockerfile"
+  },
+  "runArgs": [
+    "--device=/dev/kfd:/dev/kfd",
+    "--device=/dev/dri:/dev/dri",
+    "--group-add=44",
+    "--group-add=992",
+    "--shm-size=8g",
+    "--security-opt=seccomp=unconfined"
+  ],
+  "containerEnv": {
+    "HSA_OVERRIDE_GFX_VERSION": "11.0.0",
+    "ROCR_VISIBLE_DEVICES": "0",
+    "PYTHONUNBUFFERED": "1"
+  },
+  "mounts": [
+    "source=${localEnv:HOME}/AI work/anon/projects,target=/workspace/projects,type=bind",
+    "source=${localEnv:HOME}/AI work/anon/rag,target=/workspace/rag,type=bind",
+    "source=${localEnv:HOME}/AI work/anon/projects/tools/nexus/vllm/models,target=/root/.cache/huggingface,type=bind"
+  ],
+  "workspaceFolder": "/workspace/projects",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.debugpy",
+        "rust-lang.rust-analyzer",
+        "ms-toolsai.jupyter"
+      ]
+    }
+  },
+  "postCreateCommand": "echo 'Forge ready. PyTorch + Rust + AI Training.'"
+}

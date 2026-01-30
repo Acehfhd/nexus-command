@@ -1,0 +1,17 @@
+{
+    "name": "Connect Go - Backend",
+    "build": {
+        "dockerfile": "../Dockerfile"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "golang.go"
+            ]
+        }
+    },
+    "mounts": [
+        "source=${localEnv:HOME}/AI work/anon/projects,target=/workspace/projects,type=bind"
+    ],
+    "postCreateCommand": "go version"
+}

@@ -1,0 +1,441 @@
+{
+    "name": "Nexus Omnichannel Router V5.1 (Refined) - Audit Mode",
+    "active": true,
+    "settings": {},
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "nexus-router",
+                "responseMode": "lastNode",
+                "options": {}
+            },
+            "id": "webhook-trigger",
+            "name": "User Input (Dash)",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                -150,
+                400
+            ],
+            "webhookId": "nexus-router"
+        },
+        {
+            "parameters": {
+                "path": "nexus-telegram",
+                "options": {}
+            },
+            "id": "telegram-trigger",
+            "name": "Telegram Input",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                -150,
+                550
+            ],
+            "webhookId": "nexus-telegram"
+        },
+        {
+            "parameters": {
+                "path": "nexus-discord",
+                "options": {}
+            },
+            "id": "discord-trigger",
+            "name": "Discord Input",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                -150,
+                700
+            ],
+            "webhookId": "nexus-discord"
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "={{ $json.body.prompt || $json.body.message.text || $json.body.content }}",
+                "options": {
+                    "systemMessage": "You are the Nexus Brain Router. Categorize the user request. Respond with ONLY ONE WORD from this list: diagnostic, fix, swarm, image, video, homework. No punctuation or sentences."
+                }
+            },
+            "id": "llm-chain",
+            "name": "Router Brain",
+            "type": "@n8n/n8n-nodes-langchain.chainLlm",
+            "typeVersion": 1.4,
+            "position": [
+                150,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "model": "qwen3:8b",
+                "options": {}
+            },
+            "id": "ollama-model",
+            "name": "Ollama Model",
+            "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+            "typeVersion": 1,
+            "position": [
+                100,
+                600
+            ]
+        },
+        {
+            "parameters": {
+                "mode": "rules",
+                "rules": {
+                    "values": [
+                        {
+                            "conditions": {
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json.text }}",
+                                        "rightValue": "diagnostic",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "contains"
+                                        }
+                                    }
+                                ]
+                            },
+                            "renameOutput": true,
+                            "outputKey": "diagnostic"
+                        },
+                        {
+                            "conditions": {
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json.text }}",
+                                        "rightValue": "fix",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "contains"
+                                        }
+                                    }
+                                ]
+                            },
+                            "renameOutput": true,
+                            "outputKey": "fix"
+                        },
+                        {
+                            "conditions": {
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json.text }}",
+                                        "rightValue": "swarm",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "contains"
+                                        }
+                                    }
+                                ]
+                            },
+                            "renameOutput": true,
+                            "outputKey": "swarm"
+                        },
+                        {
+                            "conditions": {
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json.text }}",
+                                        "rightValue": "image",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "contains"
+                                        }
+                                    }
+                                ]
+                            },
+                            "renameOutput": true,
+                            "outputKey": "image"
+                        },
+                        {
+                            "conditions": {
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json.text }}",
+                                        "rightValue": "video",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "contains"
+                                        }
+                                    }
+                                ]
+                            },
+                            "renameOutput": true,
+                            "outputKey": "video"
+                        },
+                        {
+                            "conditions": {
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json.text }}",
+                                        "rightValue": "homework",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "contains"
+                                        }
+                                    }
+                                ]
+                            },
+                            "renameOutput": true,
+                            "outputKey": "homework"
+                        }
+                    ]
+                }
+            },
+            "id": "route-switch",
+            "name": "Route Switch",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 3,
+            "position": [
+                400,
+                400
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://nexus-console:8080/tickets",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "source",
+                            "value": "n8n-router"
+                        },
+                        {
+                            "name": "severity",
+                            "value": "info"
+                        },
+                        {
+                            "name": "description",
+                            "value": "=Audit Log: {{ $node[\"Router Brain\"].json.text }} | Request: {{ $node[\"User Input (Dash)\"].json.body.prompt || $node[\"Telegram Input\"].json.body.message.text || $node[\"Discord Input\"].json.body.content }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "create-ticket",
+            "name": "Dashboard Ticket",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                650,
+                400
+            ],
+            "onError": "continueErrorOutput"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": false,
+                        "leftValue": "",
+                        "typeValidation": "loose"
+                    },
+                    "conditions": [
+                        {
+                            "leftValue": "={{ $env.TELEGRAM_TOKEN }}",
+                            "operator": {
+                                "type": "string",
+                                "operation": "exists"
+                            }
+                        }
+                    ]
+                }
+            },
+            "id": "check-tg-setup",
+            "name": "TG Setup?",
+            "type": "n8n-nodes-base.filter",
+            "typeVersion": 2,
+            "position": [
+                850,
+                550
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.telegram.org/bot{{$env.TELEGRAM_TOKEN}}/sendMessage",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "chat_id",
+                            "value": "={{$env.TELEGRAM_CHAT_ID}}"
+                        },
+                        {
+                            "name": "text",
+                            "value": "=🚨 FAILOVER ALERT: Dashboard/Backend Unreachable!\nRequest: {{ $node[\"Router Brain\"].json.text }}"
+                        }
+                    ]
+                }
+            },
+            "id": "tg-alert",
+            "name": "Telegram Alert",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1050,
+                500
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://nexus-console:8080/ask_adk_swarm",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "task",
+                            "value": "={{ $node[\"User Input (Dash)\"].json.body.prompt || $node[\"Telegram Input\"].json.body.message.text || $node[\"Discord Input\"].json.body.content }}"
+                        }
+                    ]
+                }
+            },
+            "id": "swarm-node",
+            "name": "Ask ADK Swarm",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                950,
+                350
+            ]
+        }
+    ],
+    "connections": {
+        "User Input (Dash)": {
+            "main": [
+                [
+                    {
+                        "node": "Router Brain",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Telegram Input": {
+            "main": [
+                [
+                    {
+                        "node": "Router Brain",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Discord Input": {
+            "main": [
+                [
+                    {
+                        "node": "Router Brain",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Router Brain": {
+            "main": [
+                [
+                    {
+                        "node": "Route Switch",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Ollama Model": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "Router Brain",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Route Switch": {
+            "main": [
+                [
+                    {
+                        "node": "create-ticket",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "create-ticket",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "create-ticket",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "create-ticket",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "create-ticket",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "create-ticket",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "create-ticket": {
+            "main": [
+                [
+                    {
+                        "node": "swarm-node",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "check-tg-setup",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "check-tg-setup": {
+            "main": [
+                [
+                    {
+                        "node": "tg-alert",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

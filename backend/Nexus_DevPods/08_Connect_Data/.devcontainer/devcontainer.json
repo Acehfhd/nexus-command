@@ -1,0 +1,19 @@
+{
+    "name": "Connect Data - Analysis",
+    "build": {
+        "dockerfile": "../Dockerfile"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-toolsai.jupyter"
+            ]
+        }
+    },
+    "mounts": [
+        "source=${localEnv:HOME}/AI work/anon/projects,target=/workspace/projects,type=bind",
+        "source=/media/anon/seagate-data/nexus_data,target=/workspace/data,type=bind"
+    ],
+    "postCreateCommand": "python --version"
+}

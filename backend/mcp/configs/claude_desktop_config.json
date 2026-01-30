@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "net-sentry": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "cd '/home/anon/AI work/anon/projects/tools/net-sentry' && ./run_mcp.sh"
+      ]
+    }
+  }
+}

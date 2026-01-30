@@ -1,0 +1,24 @@
+{
+    "name": "Connect Core - Python Scripts",
+    "build": {
+        "dockerfile": "../Dockerfile"
+    },
+    "containerEnv": {
+        "PYTHONUNBUFFERED": "1"
+    },
+    "mounts": [
+        "source=${localEnv:HOME}/AI work/anon/projects/research,target=/workspace/research,type=bind",
+        "source=${localEnv:HOME}/AI work/anon/rag,target=/workspace/rag,type=bind",
+        "source=/media/anon/seagate-data/nexus_data,target=/media/anon/seagate-data/nexus_data,type=bind"
+    ],
+    "workspaceFolder": "/workspace/research",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-python.debugpy"
+            ]
+        }
+    },
+    "postCreateCommand": "echo 'Core ready. Minimal Python for scripts.'"
+}

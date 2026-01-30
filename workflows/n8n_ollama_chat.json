@@ -1,0 +1,80 @@
+{
+    "name": "Ollama Chat Wrapper",
+    "nodes": [
+        {
+            "parameters": {
+                "model": "llama3.2:latest",
+                "options": {}
+            },
+            "id": "ollama-node",
+            "name": "Ollama Chat Model",
+            "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+            "typeVersion": 1,
+            "position": [
+                840,
+                460
+            ],
+            "credentials": {
+                "ollamaApi": {
+                    "id": "Ollama_Local",
+                    "name": "Local Ollama"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "content": "={{ $json.message }}",
+                "options": {}
+            },
+            "id": "agent-node",
+            "name": "Basic Chain",
+            "type": "@n8n/n8n-nodes-langchain.chainLlm",
+            "typeVersion": 1.4,
+            "position": [
+                1060,
+                280
+            ]
+        },
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "chat",
+                "responseMode": "lastNode",
+                "options": {}
+            },
+            "id": "webhook-trigger",
+            "name": "Chat Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                580,
+                280
+            ],
+            "webhookId": "chat"
+        }
+    ],
+    "connections": {
+        "Ollama Chat Model": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "Basic Chain",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Chat Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Basic Chain",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

@@ -1,0 +1,10 @@
+{
+  "theme": {
+    "background": "nebula"
+  },
+  "council": {
+    "homework": "deepseek-r1:14b",
+    "coding": "qwen/qwen-3-coder-480b-instruct:free",
+    "research": "google/gemini-2.0-flash-exp:free"
+  }
+}

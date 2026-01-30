@@ -1,0 +1,284 @@
+name: nexus
+
+# ============================================
+# 🌌 NEXUS PRIME GRID (v1.4 - Clean Slate)
+# Core Infrastructure
+# ============================================
+
+services:
+  # ============================================
+  # POD 01: THE CONSOLE (HUD + Whisper + Kokoro)
+  # ============================================
+  console-pod:
+    # Origin: Nexus_DevPods/05_Connect_Core
+    build:
+      context: ../../Nexus_DevPods/05_Connect_Core
+      dockerfile: Dockerfile
+    image: nexus-core/console:latest # STANDARDIZED NAME
+    container_name: nexus-console
+    ports:
+      - "127.0.0.1:8090:8080"
+      - "127.0.0.1:4000:4000"
+      - "127.0.0.1:8091:8081"
+    volumes:
+      - ../../../../:/workspace # Mounts project root
+      - /home/anon/AI work/anon/rag:/rag
+      - /run/secrets:/run/secrets:ro
+      - /var/run/docker.sock:/var/run/docker.sock # Docker control
+      - /sys:/sys:ro # GPU/hardware access for metrics
+      - /home/anon/AI work/anon/projects/tools/nexus/comfyui/outputs/temp:/comfy_output
+      - /home/anon/AI work/anon/projects/tools/nexus/comfyui/outputs/accepted:/workspace/outputs
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - LITELLM_MASTER_KEY=sk-nexus-local
+      - OLLAMA_API_BASE=http://nexus-ollama:11434
+    devices:
+      - /dev/snd:/dev/snd
+    networks:
+      - nexus-net
+    restart: always
+
+  # ============================================
+  # POD 02: THE BRAIN (Ollama)
+  # ============================================
+  ollama-pod:
+    image: ollama/ollama:rocm
+    container_name: nexus-ollama
+    ports:
+      - "127.0.0.1:11434:11434"
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - "44"
+      - "992"
+    volumes:
+      - /home/anon/AI work/anon/projects/tools/nexus/ollama/models:/root/.ollama/models
+    environment:
+      - HSA_OVERRIDE_GFX_VERSION=11.0.0
+      - OLLAMA_MODELS=/root/.ollama/models
+      - OLLAMA_KEEP_ALIVE=-1
+      - OLLAMA_DEBUG=1
+      - ROCR_VISIBLE_DEVICES=0
+    networks:
+      - nexus-net
+    restart: always
+
+  # ============================================
+  # POD 03: THE FACTORY (ComfyUI) - On Demand
+  # ============================================
+  factory-pod:
+    image: yanwk/comfyui-boot:rocm
+    container_name: nexus-comfyui
+    ports:
+      - "127.0.0.1:8188:8188"
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - "44"
+      - "992"
+    volumes:
+      - /home/anon/AI work/anon/projects/tools/nexus/comfyui/data:/home/scripts/data
+      - /home/anon/AI work/anon/projects/tools/nexus/comfyui/storage:/home/scripts/storage
+      - /home/anon/AI work/anon/projects/tools/nexus/comfyui/extra_model_paths.yaml:/root/ComfyUI/extra_model_paths.yaml
+      - /home/anon/AI work/anon/projects/tools/nexus/comfyui/outputs/temp:/root/ComfyUI/output
+    environment:
+      - CLI_ARGS=--listen --port 8188
+    networks:
+      - nexus-net
+    restart: always
+
+  # ============================================
+  # POD 04: THE HANDS (Browser) - On Demand
+  # ============================================
+  browser-pod:
+    build:
+      context: ../../Nexus_DevPods/03_Connect_Web
+      dockerfile: Dockerfile
+    image: nexus-core/browser:latest # STANDARDIZED NAME
+    container_name: nexus-browser
+    ports:
+      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:5900:5900"
+    volumes:
+      - ../../../../research/browser_data:/workspace/data
+    networks:
+      - jail_net
+    restart: no
+
+  # ============================================
+  # POD 05: THE ARCADE (Play) - On Demand
+  # ============================================
+  arcade-pod:
+    build:
+      context: ../../Nexus_DevPods/01_Connect_Arcade
+      dockerfile: Dockerfile
+    image: nexus-core/arcade:latest # STANDARDIZED NAME
+    container_name: nexus-arcade
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+      - /dev/snd:/dev/snd
+    group_add:
+      - "44"
+      - "992"
+    environment:
+      - DISPLAY=$DISPLAY
+      - HSA_OVERRIDE_GFX_VERSION=11.0.0
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    networks:
+      - nexus-net
+    restart: no
+
+  # ============================================
+  # POD 06: THE SENTINEL (Security) - On Demand
+  # ============================================
+  sentinel-pod:
+    build:
+      context: ../../mcp/servers/net-sentry
+      dockerfile: Dockerfile
+    image: nexus-core/sentinel:latest # STANDARDIZED NAME
+    container_name: nexus-sentinel
+    volumes:
+      - ../../../../research/security_reports:/app/reports
+    networks:
+      - nexus-net
+    restart: no
+
+  # ============================================
+  # POD 07: THE RADAR (n8n)
+  # ============================================
+  n8n-pod:
+    image: n8nio/n8n:latest
+    container_name: nexus-n8n
+    ports:
+      - "127.0.0.1:5678:5678"
+    volumes:
+      - /home/anon/AI work/anon/projects/tools/nexus/n8n_data:/home/node/.n8n
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /media/anon/seagate-data/nexus_data:/nexus_data
+    environment:
+      - GENERIC_TIMEZONE=America/New_York
+      - N8N_HOST=127.0.0.1
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+    networks:
+      - nexus-net
+    restart: always
+
+  # ============================================
+  # POD 08: THE MEMORY (Obsidian)
+  # ============================================
+  memory-pod:
+    build:
+      context: ../../mcp/servers/obsidian
+      dockerfile: Dockerfile
+    image: nexus-core/memory:latest # STANDARDIZED NAME
+    container_name: nexus-memory
+    ports:
+      - "127.0.0.1:8001:8000"
+    volumes:
+      - /home/anon/AI work/anon/rag:/vault
+    networks:
+      - nexus-net
+    restart: no
+
+  # ============================================
+  # POD 09: THE RESEARCH (SearXNG)
+  # ============================================
+  searxng-pod:
+    image: searxng/searxng:latest
+    container_name: nexus-searxng
+    ports:
+      - "127.0.0.1:8181:8080"
+    volumes:
+      - ./searxng:/etc/searxng
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8181/
+    networks:
+      - nexus-net
+    restart: no
+
+  # ============================================
+  # POD 10: THE SANDBOX (Erebus)
+  # ============================================
+  erebus-pod:
+    image: alpine:latest
+    container_name: nexus-erebus
+    command: sleep infinity
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    networks:
+      - jail_net
+    restart: no
+  # ============================================
+  # POD 11: THE BRIDGE (LiteLLM)
+  # ============================================
+  # Merged into console-pod (Pod 01)
+  # ============================================
+
+  # ============================================
+  # NETWORKS
+  # ============================================
+  # ============================================
+  # POD 12: THE FACE (Open WebUI)
+  # ============================================
+  webui-pod:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: nexus-open-webui
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - /home/anon/AI work/anon/projects/tools/nexus/open-webui:/app/backend/data
+    environment:
+      - OLLAMA_BASE_URL=http://nexus-ollama:11434
+      - COMFYUI_BASE_URL=http://nexus-factory:8188
+      - WEBUI_SECRET_KEY=nexus_secret_key
+      - ENABLE_IMAGE_GENERATION=True
+      - IMAGE_GENERATION_ENGINE=comfyui
+    networks:
+      - nexus-net
+    restart: always
+
+  # ============================================
+  # POD 13: THE VAULT (PostgreSQL - Session Store)
+  # ============================================
+  postgres-pod:
+    image: postgres:16-alpine
+    container_name: nexus-postgres
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=nexus
+      - POSTGRES_PASSWORD=nexus_local_only
+      - POSTGRES_DB=nexus_sessions
+    networks:
+      - nexus-net
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U nexus -d nexus_sessions" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  # ============================================
+  # NETWORKS
+  # ============================================
+networks:
+  nexus-net:
+    driver: bridge
+  jail_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

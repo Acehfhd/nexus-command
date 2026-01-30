@@ -1,0 +1,103 @@
+{
+    "name": "Vision -> ComfyUI Pipeline",
+    "nodes": [
+        {
+            "parameters": {
+                "path": "vision-generate",
+                "responseMode": "lastNode",
+                "options": {}
+            },
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                460,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://nexus-ollama:11434/api/generate",
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "model",
+                            "value": "llava:latest"
+                        },
+                        {
+                            "name": "prompt",
+                            "value": "Describe this image in great detail for an art generator. Focus on lighting, style, and composition."
+                        },
+                        {
+                            "name": "images",
+                            "value": "={{ $json.body.images }}"
+                        },
+                        {
+                            "name": "stream",
+                            "value": false
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "name": "Ollama (Vision)",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                680,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://nexus-prime-backend:8080/comfyui/prompt",
+                "sendBody": true,
+                "contentType": "json",
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "prompt",
+                            "value": "={{ $json.response }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "name": "ComfyUI Generation",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                900,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Ollama (Vision)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Ollama (Vision)": {
+            "main": [
+                [
+                    {
+                        "node": "ComfyUI Generation",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

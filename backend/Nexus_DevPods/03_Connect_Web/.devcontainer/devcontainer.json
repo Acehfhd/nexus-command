@@ -1,0 +1,33 @@
+{
+  "name": "Connect WebApp - Web & Mobile Dev",
+  "build": {
+    "dockerfile": "../Dockerfile"
+  },
+  "runArgs": [
+    "--shm-size=1g"
+  ],
+  "containerEnv": {
+    "PYTHONUNBUFFERED": "1"
+  },
+  "mounts": [
+    "source=${localEnv:HOME}/AI work/anon/projects/websites,target=/workspace/websites,type=bind"
+  ],
+  "workspaceFolder": "/workspace/websites",
+  "forwardPorts": [
+    3000,
+    5000,
+    8000,
+    8080
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss"
+      ]
+    }
+  },
+  "postCreateCommand": "echo 'WebApp ready. Node.js + Python + React.'"
+}

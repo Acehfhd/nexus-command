@@ -1,0 +1,134 @@
+# ============================================
+# NEXUS PODS & CONNECTORS (On-Demand)
+# Last Updated: 2026-01-05
+# ============================================
+# These services do NOT auto-start. Call them when needed:
+#
+# Start specific pod:
+#   docker compose -f docker-compose.pods.yml up -d connect-core
+#   docker compose -f docker-compose.pods.yml up -d audit
+#   docker compose -f docker-compose.pods.yml up -d mcp
+#
+# Stop specific pod:
+#   docker compose -f docker-compose.pods.yml stop connect-core
+#
+# Stop all pods:
+#   docker compose -f docker-compose.pods.yml down
+# ============================================
+# REQUIRES: Main stack running first (creates nexus-net)
+# ============================================
+
+services:
+  # ============================================
+  # CONNECT-CORE - The Trading Vault
+  # ============================================
+  connect-core:
+    build:
+      context: ./Nexus_DevPods/05_Connect_Core
+    container_name: connect-core
+    command: sleep infinity
+    volumes:
+      - /home/anon/AI work/anon/projects/research:/workspace/research
+      - /home/anon/AI work/anon/rag:/workspace/rag
+      - /media/anon/seagate-data/nexus_data:/nexus_data
+    environment:
+      - PYTHONUNBUFFERED=1
+    profiles:
+      - vault
+    networks:
+      - nexus-net
+
+  # ============================================
+  # NEXUS-AUDIT - Security Sandbox
+  # ============================================
+  audit:
+    image: python:3.10-slim
+    container_name: nexus-audit
+    command: tail -f /dev/null
+    working_dir: /workspace
+    volumes:
+      - /home/anon/AI work/anon/projects/research:/workspace/research
+      - /media/anon/seagate-data/nexus_data:/nexus_data
+    profiles:
+      - security
+    networks:
+      - nexus-net
+
+  # ============================================
+  # MCP SERVER - Tool Execution Bridge
+  # ============================================
+  mcp:
+    build:
+      context: ./mcp/servers
+      dockerfile: Dockerfile.nexus
+    image: nexus-mcp
+    container_name: nexus-mcp
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - /home/anon/AI work/anon:/vault:ro
+      - /home/anon/.gemini:/root/.gemini:rw
+      - /home/anon/.opencode:/root/.local/share/opencode:rw
+      - /home/anon/.opencode_config:/root/.config/opencode:rw
+    environment:
+      - SEARXNG_URL=http://searxng:8080
+      - N8N_URL=http://nexus-n8n:5678/webhook
+    profiles:
+      - tools
+    networks:
+      - nexus-net
+
+  # ============================================
+  # PLAYWRIGHT MCP - Browser Automation
+  # ============================================
+  playwright-mcp:
+    image: mcr.microsoft.com/playwright:v1.52.0-noble
+    container_name: nexus-playwright
+    command: npx @anthropic/mcp-server-playwright --port 3000
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      - DISPLAY=:99
+    profiles:
+      - browser
+    networks:
+      - nexus-net
+
+  # ============================================
+  # OBSIDIAN MCP - Note Taking & Memory
+  # ============================================
+  obsidian-mcp:
+    build:
+      context: ./mcp/servers/obsidian
+    container_name: nexus-obsidian
+    ports:
+      - "127.0.0.1:8081:8000"
+    volumes:
+      - /home/anon/AI work/anon/projects/research:/vault:rw
+    environment:
+      - VAULT_PATH=/vault
+    profiles:
+      - tools
+    networks:
+      - nexus-net
+
+  # ============================================
+  # BLENDER MCP - 3D Asset Pipeline (Hardened)
+  # ============================================
+  blender-mcp:
+    image: blender-mcp:hardened
+    container_name: nexus-blender-mcp
+    # MCP uses stdio, but needs host network to reach Blender on localhost:9876
+    network_mode: host
+    environment:
+      - BLENDER_HOST=127.0.0.1
+      - BLENDER_PORT=9876
+      - BLENDER_AUTH_TOKEN=${BLENDER_AUTH_TOKEN}
+    profiles:
+      - 3d
+    # Note: Uses host network to communicate with Blender app on host
+
+networks:
+  nexus-net:
+    name: nexus_nexus-net
+    external: true
